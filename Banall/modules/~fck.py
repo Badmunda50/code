@@ -56,12 +56,12 @@ async def fetch_usernames(app, users_data):
             user = await app.get_users(int(user_id))
             if user:
                 user_name = user.first_name if user.first_name else "Unknown"
-                result.append((user_name, count, user_id))
+                result.append((user_name, count))
             else:
-                result.append(("Unknown", count, user_id))
+                result.append(("Unknown", count))
         except Exception as e:
             logging.error(f"Error fetching username for {user_id}: {e}")
-            result.append(("Unknown", count, user_id))
+            result.append(("Unknown", count))
     return result
 
 # ------------------- Watcher -----------------------
@@ -137,9 +137,9 @@ async def today_rankings(_, message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"{name}: {count}" for name, count in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
@@ -186,9 +186,9 @@ async def weekly_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"{name}: {count}" for name, count in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
@@ -209,9 +209,9 @@ async def overall_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"{name}: {count}" for name, count in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
