@@ -1,20 +1,16 @@
-from Banall import app
+from Banall import app as shizuchat
 from pyrogram import filters
 from pyrogram.types import Message
 import asyncio
 
-@app.on_edited_message(filters.group & ~filters.me)
+@shizuchat.on_edited_message(filters.group & ~filters.me)
 async def delete_edited_message(client, message: Message):
     """
-    Deletes a message in a group if the user edits the text. 
+    Deletes a message in a group if the user edits the text.
     Ignores edits like reactions, media changes, etc.
     """
     # Check if the edit is a text edit
     if not message.text:
-        return
-
-    # Ensure the edit is not a reaction or other non-text change
-    if message.text == message.chat.history[message.id].text:
         return
 
     try:
