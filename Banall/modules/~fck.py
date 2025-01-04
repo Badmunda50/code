@@ -164,22 +164,27 @@ async def today_rankings(_, message):
 
 @app.on_callback_query(filters.regex(r"^today$"))
 async def on_today_callback(_, callback_query):
+    await callback_query.answer()
     await today_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^weekly$"))
 async def on_weekly_callback(_, callback_query):
+    await callback_query.answer()
     await weekly_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^overall$"))
 async def on_overall_callback(_, callback_query):
+    await callback_query.answer()
     await overall_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^group_overall$"))
 async def on_group_overall_callback(_, callback_query):
+    await callback_query.answer()
     await all_groups_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^back$"))
 async def on_back_callback(_, callback_query):
+    await callback_query.answer()
     await today_rankings(callback_query.message)
 
 async def weekly_rankings(message):
@@ -227,7 +232,7 @@ async def overall_rankings(message):
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
-            text_leaderboard = "\n".join(
+            text_leaderboard = "\n.join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
