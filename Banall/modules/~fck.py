@@ -55,7 +55,7 @@ async def fetch_usernames(app, users_data):
         try:
             user = await app.get_users(int(user_id))
             if user:
-                user_name = user.first_name if user.first_name else "Unknown"
+                user_name = user.username if user.username else user.first_name if user.first_name else "Unknown"
                 result.append((user_name, count, user_id))
             else:
                 result.append(("Unknown", count, user_id))
@@ -67,7 +67,6 @@ async def fetch_usernames(app, users_data):
 # ------------------- Watcher -----------------------
 user_message_counts = {}
 user_block_times = {}
-user_warned = {}
 
 @app.on_message(filters.group & ~filters.bot, group=6)
 async def group_watcher(_, message):
@@ -75,13 +74,11 @@ async def group_watcher(_, message):
     user_id = str(message.from_user.id)
     current_time = time.time()
 
-    # Initialize message count, block time, and warning flag for the user
+    # Initialize message count and block time for the user
     if user_id not in user_message_counts:
         user_message_counts[user_id] = []
     if user_id not in user_block_times:
         user_block_times[user_id] = 0
-    if user_id not in user_warned:
-        user_warned[user_id] = False
 
     # Remove messages older than 3 seconds
     user_message_counts[user_id] = [t for t in user_message_counts[user_id] if current_time - t <= 3]
@@ -95,13 +92,9 @@ async def group_watcher(_, message):
 
     # Block user if they sent more than 8 messages in 3 seconds
     if len(user_message_counts[user_id]) > 8:
-        if not user_warned[user_id]:
-            await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
-            user_warned[user_id] = True
+        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
-    else:
-        user_warned[user_id] = False
 
     # Update today's data
     today_data = today_collection.find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "users": {}}
@@ -142,7 +135,7 @@ async def today_rankings(_, message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
-                [f"{name}: {count}" for name, count, user_id in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
@@ -191,7 +184,7 @@ async def weekly_rankings(message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
             text_leaderboard = "\n".join(
-                [f"{name}: {count}" for name, count, user_id in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
@@ -213,8 +206,8 @@ async def overall_rankings(message):
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
-            text_leaderboard = "\n.join(
-                [f"{name}: {count}" for name, count, user_id in usernames_data]
+            text_leaderboard = "\n".join(
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
@@ -239,7 +232,7 @@ async def all_groups_rankings(message):
         except Exception as e:
             logging.error(f"Error fetching group name for {group['chat_id']}: {e}")
             group_name = f"Group {group['chat_id']}"
-
+        
         sorted_groups.append((group_name, group["total_messages"]))
 
     if sorted_groups:
