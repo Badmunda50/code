@@ -165,3 +165,50 @@ async def on_callback(_, callback_query):
         await overall_rankings(callback_query.message)
     elif action == "group_overall":
         await all_groups_rankings(callback_query.message)
+
+async def weekly_rankings(message):
+    chat_id = str(message.chat.id)
+    current_week = get_current_week()
+    weekly_data = weekly_collection.find_one({"chat_id": chat_id, "week": current_week})
+
+    if weekly_data and "users" in weekly_data:
+        users_data = [(user_id, data["total_messages"]) for user_id, data in weekly_data["users"].items()]
+        sorted_users_data = sorted(users_data, key=lambda x: x[1], reverse=True)[:10]
+
+        if sorted_users_data:
+            usernames_data = await fetch_usernames(app, sorted_users_data)
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
+            text_leaderboard = "\n".join(
+                [f"{name}: {count}" for name, count in usernames_data]
+            )
+            buttons = InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton("Today", callback_data="today"),
+                    InlineKeyboardButton("Weekly", callback_data="weekly"),
+                    InlineKeyboardButton("Overall", callback_data="overall"),
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                ]]
+            )
+            await message.reply_photo(
+                photo=graph_buffer, 
+                caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}",
+                reply_markup=buttons
+            )
+        else:
+            await message.reply_text("No data available for this week.")
+    else:
+        await message.reply_text("No data available for this week.")
+
+@app.on_callback_query(filters.regex(r"^(today|weekly|overall|group_overall)$"))
+async def on_callback(_, callback_query):
+    action = callback_query.data
+    await callback_query.answer()
+
+    if action == "today":
+        await today_rankings(callback_query.message)
+    elif action == "weekly":
+        await weekly_rankings(callback_query.message)
+    elif action == "overall":
+        await overall_rankings(callback_query.message)
+    elif action == "group_overall":
+        await all_groups_rankings(callback_query.message)
