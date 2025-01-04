@@ -10,7 +10,7 @@ async def delete_edited_message(client, message: Message):
     Ignores edits like reactions, media changes, etc.
     """
     # Check if the edit is a text edit
-    if not message.text:
+    if not message.text or message.text == message.edit_date:
         return
 
     try:
