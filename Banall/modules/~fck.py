@@ -148,7 +148,8 @@ async def today_rankings(_, message):
                     InlineKeyboardButton("Today", callback_data="today"),
                     InlineKeyboardButton("Weekly", callback_data="weekly"),
                     InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
+                    InlineKeyboardButton("Back", callback_data="back")
                 ]]
             )
             await message.reply_photo(
@@ -177,6 +178,10 @@ async def on_overall_callback(_, callback_query):
 async def on_group_overall_callback(_, callback_query):
     await all_groups_rankings(callback_query.message)
 
+@app.on_callback_query(filters.regex(r"^back$"))
+async def on_back_callback(_, callback_query):
+    await today_rankings(callback_query.message)
+
 async def weekly_rankings(message):
     chat_id = str(message.chat.id)
     current_week = get_current_week()
@@ -197,7 +202,8 @@ async def weekly_rankings(message):
                     InlineKeyboardButton("Today", callback_data="today"),
                     InlineKeyboardButton("Weekly", callback_data="weekly"),
                     InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
+                    InlineKeyboardButton("Back", callback_data="back")
                 ]]
             )
             await message.reply_photo(
@@ -229,7 +235,8 @@ async def overall_rankings(message):
                     InlineKeyboardButton("Today", callback_data="today"),
                     InlineKeyboardButton("Weekly", callback_data="weekly"),
                     InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
+                    InlineKeyboardButton("Back", callback_data="back")
                 ]]
             )
             await message.reply_photo(
@@ -266,7 +273,8 @@ async def all_groups_rankings(message):
                 InlineKeyboardButton("Today", callback_data="today"),
                 InlineKeyboardButton("Weekly", callback_data="weekly"),
                 InlineKeyboardButton("Overall", callback_data="overall"),
-                InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                InlineKeyboardButton("Group Overall", callback_data="group_overall"),
+                InlineKeyboardButton("Back", callback_data="back")
             ]]
         )
         await message.reply_photo(
@@ -276,4 +284,3 @@ async def all_groups_rankings(message):
         )
     else:
         await message.reply_text("No data available for all groups.")
-        
