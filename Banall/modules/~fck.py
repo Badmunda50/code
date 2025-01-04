@@ -55,7 +55,7 @@ async def fetch_usernames(app, users_data):
         try:
             user = await app.get_users(int(user_id))
             if user:
-                user_name = user.username if user.username else user.first_name if user.first_name else "Unknown"
+                user_name = user.first_name if user.first_name else "Unknown"
                 result.append((user_name, count, user_id))
             else:
                 result.append(("Unknown", count, user_id))
@@ -67,9 +67,8 @@ async def fetch_usernames(app, users_data):
 # ------------------- Watcher -----------------------
 user_message_counts = {}
 user_block_times = {}
-user_warned = {}  # Added to track if a user has been warned
 
-@app.on_message(filters.group & ~filters.bot, group=6)
+@app.on_message(filters.group, group=6)
 async def group_watcher(_, message):
     chat_id = str(message.chat.id)
     user_id = str(message.from_user.id)
@@ -80,8 +79,6 @@ async def group_watcher(_, message):
         user_message_counts[user_id] = []
     if user_id not in user_block_times:
         user_block_times[user_id] = 0
-    if user_id not in user_warned:
-        user_warned[user_id] = False  # Initialize warned status
 
     # Remove messages older than 3 seconds
     user_message_counts[user_id] = [t for t in user_message_counts[user_id] if current_time - t <= 3]
@@ -95,15 +92,9 @@ async def group_watcher(_, message):
 
     # Block user if they sent more than 8 messages in 3 seconds
     if len(user_message_counts[user_id]) > 8:
-        if not user_warned[user_id]:  # Check if the user has not been warned yet
-            await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
-            user_warned[user_id] = True  # Set warned status to True
+        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
-
-    # Reset warned status after 3 seconds of no flooding
-    if len(user_message_counts[user_id]) <= 8 and user_warned[user_id]:
-        user_warned[user_id] = False
 
     # Update today's data
     today_data = today_collection.find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "users": {}}
@@ -144,7 +135,7 @@ async def today_rankings(_, message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{user.first_name if user.first_name else 'Unknown'}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
@@ -193,7 +184,7 @@ async def weekly_rankings(message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{user.first_name if user.first_name else 'Unknown'}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
@@ -216,7 +207,7 @@ async def overall_rankings(message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{user.first_name if user.first_name else 'Unknown'}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
@@ -235,9 +226,6 @@ async def all_groups_rankings(message):
         try:
             group_chat = await app.get_chat(group["chat_id"])
             group_name = group_chat.title if group_chat else f"Group {group['chat_id']}"
-            if not group_chat.title:
-                private_chat = await app.get_chat_member(group["chat_id"], app.get_me().id)
-                group_name = private_chat.user.first_name if private_chat.user.first_name else f"Private Group {group['chat_id']}"
         except Exception as e:
             logging.error(f"Error fetching group name for {group['chat_id']}: {e}")
             group_name = f"Group {group['chat_id']}"
