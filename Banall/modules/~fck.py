@@ -54,11 +54,14 @@ async def fetch_usernames(app, users_data):
     for user_id, count in users_data:
         try:
             user = await app.get_users(int(user_id))
-            user_name = user.username if user.username else (user.first_name if user.first_name else "Unknown")
-            result.append((user_name, count))
+            if user:
+                user_name = user.first_name if user.first_name else "Unknown"
+                result.append((user_name, count, user_id))
+            else:
+                result.append(("Unknown", count, user_id))
         except Exception as e:
             logging.error(f"Error fetching username for {user_id}: {e}")
-            result.append(("Unknown", count))
+            result.append(("Unknown", count, user_id))
     return result
 
 # ------------------- Watcher -----------------------
@@ -89,7 +92,13 @@ async def group_watcher(_, message):
 
     # Block user if they sent more than 8 messages in 3 seconds
     if len(user_message_counts[user_id]) > 8:
-        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes.")
+        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
+        user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
+        return
+
+    # Block user if they sent more than 3 messages in 8 seconds
+    if len([t for t in user_message_counts[user_id] if current_time - t <= 8]) > 3:
+        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
 
@@ -132,7 +141,7 @@ async def today_rankings(_, message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
-                [f"{name}: {count}" for name, count in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
@@ -152,19 +161,21 @@ async def today_rankings(_, message):
     else:
         await message.reply_text("No data available for today.")
 
-@app.on_callback_query(filters.regex(r"^(today|weekly|overall|group_overall)$"))
-async def on_callback(_, callback_query):
-    action = callback_query.data
-    await callback_query.answer()
+@app.on_callback_query(filters.regex(r"^today$"))
+async def on_today_callback(_, callback_query):
+    await today_rankings(callback_query.message)
 
-    if action == "today":
-        await today_rankings(callback_query.message)
-    elif action == "weekly":
-        await weekly_rankings(callback_query.message)
-    elif action == "overall":
-        await overall_rankings(callback_query.message)
-    elif action == "group_overall":
-        await all_groups_rankings(callback_query.message)
+@app.on_callback_query(filters.regex(r"^weekly$"))
+async def on_weekly_callback(_, callback_query):
+    await weekly_rankings(callback_query.message)
+
+@app.on_callback_query(filters.regex(r"^overall$"))
+async def on_overall_callback(_, callback_query):
+    await overall_rankings(callback_query.message)
+
+@app.on_callback_query(filters.regex(r"^group_overall$"))
+async def on_group_overall_callback(_, callback_query):
+    await all_groups_rankings(callback_query.message)
 
 async def weekly_rankings(message):
     chat_id = str(message.chat.id)
@@ -179,7 +190,7 @@ async def weekly_rankings(message):
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
             text_leaderboard = "\n".join(
-                [f"{name}: {count}" for name, count in usernames_data]
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
@@ -199,16 +210,70 @@ async def weekly_rankings(message):
     else:
         await message.reply_text("No data available for this week.")
 
-@app.on_callback_query(filters.regex(r"^(today|weekly|overall|group_overall)$"))
-async def on_callback(_, callback_query):
-    action = callback_query.data
-    await callback_query.answer()
+async def overall_rankings(message):
+    chat_id = str(message.chat.id)
+    overall_data = overall_collection.find_one({"chat_id": chat_id})
 
-    if action == "today":
-        await today_rankings(callback_query.message)
-    elif action == "weekly":
-        await weekly_rankings(callback_query.message)
-    elif action == "overall":
-        await overall_rankings(callback_query.message)
-    elif action == "group_overall":
-        await all_groups_rankings(callback_query.message)
+    if overall_data and "users" in overall_data:
+        users_data = [(user_id, data["total_messages"]) for user_id, data in overall_data["users"].items()]
+        sorted_users_data = sorted(users_data, key=lambda x: x[1], reverse=True)[:10]
+
+        if sorted_users_data:
+            usernames_data = await fetch_usernames(app, sorted_users_data)
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
+            text_leaderboard = "\n".join(
+                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+            )
+            buttons = InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton("Today", callback_data="today"),
+                    InlineKeyboardButton("Weekly", callback_data="weekly"),
+                    InlineKeyboardButton("Overall", callback_data="overall"),
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                ]]
+            )
+            await message.reply_photo(
+                photo=graph_buffer, 
+                caption=f"**📈 OVERALL LEADERBOARD**\n\n{text_leaderboard}",
+                reply_markup=buttons
+            )
+        else:
+            await message.reply_text("No data available for this group.")
+    else:
+        await message.reply_text("No data available for this group.")
+
+async def all_groups_rankings(message):
+    groups_data = group_collection.find().sort("total_messages", -1).limit(5)
+    sorted_groups = []
+
+    for group in groups_data:
+        try:
+            group_chat = await app.get_chat(group["chat_id"])
+            group_name = group_chat.title if group_chat else f"Group {group['chat_id']}"
+        except Exception as e:
+            logging.error(f"Error fetching group name for {group['chat_id']}: {e}")
+            group_name = f"Group {group['chat_id']}"
+        
+        sorted_groups.append((group_name, group["total_messages"]))
+
+    if sorted_groups:
+        graph_buffer = generate_graph(sorted_groups, "📊 All Groups Leaderboard")
+        text_leaderboard = "\n".join(
+            [f"{group}: {count}" for group, count in sorted_groups]
+        )
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("Today", callback_data="today"),
+                InlineKeyboardButton("Weekly", callback_data="weekly"),
+                InlineKeyboardButton("Overall", callback_data="overall"),
+                InlineKeyboardButton("Group Overall", callback_data="group_overall")
+            ]]
+        )
+        await message.reply_photo(
+            photo=graph_buffer, 
+            caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}",
+            reply_markup=buttons
+        )
+    else:
+        await message.reply_text("No data available for all groups.")
+        
