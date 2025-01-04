@@ -56,12 +56,12 @@ async def fetch_usernames(app, users_data):
             user = await app.get_users(int(user_id))
             if user:
                 user_name = user.first_name if user.first_name else "Unknown"
-                result.append((user_name, count))
+                result.append((user_name, count, user_id))
             else:
-                result.append(("Unknown", count))
+                result.append(("Unknown", count, user_id))
         except Exception as e:
             logging.error(f"Error fetching username for {user_id}: {e}")
-            result.append(("Unknown", count))
+            result.append(("Unknown", count, user_id))
     return result
 
 # ------------------- Watcher -----------------------
@@ -73,10 +73,6 @@ async def group_watcher(_, message):
     chat_id = str(message.chat.id)
     user_id = str(message.from_user.id)
     current_time = time.time()
-
-    # Exclude bot messages
-    if message.from_user.is_bot:
-        return
 
     # Initialize message count and block time for the user
     if user_id not in user_message_counts:
@@ -98,9 +94,7 @@ async def group_watcher(_, message):
     if len(user_message_counts[user_id]) > 8:
         await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
-    elif len(user_message_counts[user_id]) == 8:
-        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
-        user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
+        return
 
     # Update today's data
     today_data = today_collection.find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "users": {}}
@@ -163,22 +157,18 @@ async def today_rankings(_, message):
 
 @app.on_callback_query(filters.regex(r"^today$"))
 async def on_today_callback(_, callback_query):
-    await callback_query.message.delete()
     await today_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^weekly$"))
 async def on_weekly_callback(_, callback_query):
-    await callback_query.message.delete()
     await weekly_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^overall$"))
 async def on_overall_callback(_, callback_query):
-    await callback_query.message.delete()
     await overall_rankings(callback_query.message)
 
 @app.on_callback_query(filters.regex(r"^group_overall$"))
 async def on_group_overall_callback(_, callback_query):
-    await callback_query.message.delete()
     await all_groups_rankings(callback_query.message)
 
 async def weekly_rankings(message):
