@@ -55,7 +55,7 @@ async def fetch_usernames(app, users_data):
         try:
             user = await app.get_users(int(user_id))
             if user:
-                user_name = user.first_name if user.first_name else "Unknown"
+                user_name = user.username if user.username else user.first_name if user.first_name else "Unknown"
                 result.append((user_name, count, user_id))
             else:
                 result.append(("Unknown", count, user_id))
@@ -68,7 +68,7 @@ async def fetch_usernames(app, users_data):
 user_message_counts = {}
 user_block_times = {}
 
-@app.on_message(filters.group, group=6)
+@app.on_message(filters.group & ~filters.bot, group=6)
 async def group_watcher(_, message):
     chat_id = str(message.chat.id)
     user_id = str(message.from_user.id)
@@ -226,6 +226,9 @@ async def all_groups_rankings(message):
         try:
             group_chat = await app.get_chat(group["chat_id"])
             group_name = group_chat.title if group_chat else f"Group {group['chat_id']}"
+            if not group_chat.title:
+                private_chat = await app.get_chat_member(group["chat_id"], app.get_me().id)
+                group_name = private_chat.user.first_name if private_chat.user.first_name else f"Private Group {group['chat_id']}"
         except Exception as e:
             logging.error(f"Error fetching group name for {group['chat_id']}: {e}")
             group_name = f"Group {group['chat_id']}"
