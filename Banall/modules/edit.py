@@ -6,20 +6,25 @@ import asyncio
 @app.on_edited_message(filters.group & ~filters.me)
 async def delete_edited_message(client, message: Message):
     """
-    Deletes text-edited messages in a group, excluding reactions and bot edits.
+    Deletes a message in a group if the user edits the text. 
+    Ignores edits like reactions, media changes, etc.
     """
-    # Ensure the edit is a text edit (not a reaction, media, or other)
+    # Check if the edit is a text edit
     if not message.text:
         return
 
+    # Ensure the edit is not a reaction or other non-text change
+    if message.text == message.chat.history[message.id].text:
+        return
+
     try:
-        # Wait for a specified time (e.g., 2 seconds) to ensure proper handling
+        # Wait for a short duration (e.g., 2 seconds)
         await asyncio.sleep(2)
 
         # Delete the edited message
         await message.delete()
 
-        # Inform the user in the same chat (not as a reply)
+        # Inform the user in the chat (not as a reply to the deleted message)
         await client.send_message(
             chat_id=message.chat.id,
             text=(
