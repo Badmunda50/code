@@ -68,7 +68,7 @@ async def fetch_usernames(app, users_data):
 user_message_counts = {}
 user_block_times = {}
 
-@app.on_message(filters.group, group=6)
+@app.on_message(filters.group & ~filters.bot, group=6)
 async def group_watcher(_, message):
     chat_id = str(message.chat.id)
     user_id = str(message.from_user.id)
@@ -92,6 +92,12 @@ async def group_watcher(_, message):
 
     # Block user if they sent more than 8 messages in 3 seconds
     if len(user_message_counts[user_id]) > 8:
+        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
+        user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
+        return
+
+    # Block user if they sent more than 3 messages in 8 seconds
+    if len([t for t in user_message_counts[user_id] if current_time - t <= 8]) > 3:
         await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
@@ -186,9 +192,18 @@ async def weekly_rankings(message):
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
+            buttons = InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton("Today", callback_data="today"),
+                    InlineKeyboardButton("Weekly", callback_data="weekly"),
+                    InlineKeyboardButton("Overall", callback_data="overall"),
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                ]]
+            )
             await message.reply_photo(
                 photo=graph_buffer, 
-                caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}"
+                caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}",
+                reply_markup=buttons
             )
         else:
             await message.reply_text("No data available for this week.")
@@ -209,9 +224,18 @@ async def overall_rankings(message):
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
+            buttons = InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton("Today", callback_data="today"),
+                    InlineKeyboardButton("Weekly", callback_data="weekly"),
+                    InlineKeyboardButton("Overall", callback_data="overall"),
+                    InlineKeyboardButton("Group Overall", callback_data="group_overall")
+                ]]
+            )
             await message.reply_photo(
                 photo=graph_buffer, 
-                caption=f"**📈 OVERALL LEADERBOARD**\n\n{text_leaderboard}"
+                caption=f"**📈 OVERALL LEADERBOARD**\n\n{text_leaderboard}",
+                reply_markup=buttons
             )
         else:
             await message.reply_text("No data available for this group.")
@@ -237,9 +261,18 @@ async def all_groups_rankings(message):
         text_leaderboard = "\n".join(
             [f"{group}: {count}" for group, count in sorted_groups]
         )
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("Today", callback_data="today"),
+                InlineKeyboardButton("Weekly", callback_data="weekly"),
+                InlineKeyboardButton("Overall", callback_data="overall"),
+                InlineKeyboardButton("Group Overall", callback_data="group_overall")
+            ]]
+        )
         await message.reply_photo(
             photo=graph_buffer, 
-            caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"
+            caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}",
+            reply_markup=buttons
         )
     else:
         await message.reply_text("No data available for all groups.")
