@@ -232,7 +232,7 @@ async def overall_rankings(message):
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
             graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
-            text_leaderboard = "\n.join(
+            text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
