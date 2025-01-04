@@ -74,6 +74,10 @@ async def group_watcher(_, message):
     user_id = str(message.from_user.id)
     current_time = time.time()
 
+    # Exclude bot messages
+    if message.from_user.is_bot:
+        return
+
     # Initialize message count and block time for the user
     if user_id not in user_message_counts:
         user_message_counts[user_id] = []
@@ -133,7 +137,7 @@ async def today_rankings(_, message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
+            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
@@ -182,7 +186,7 @@ async def weekly_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
+            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
@@ -205,7 +209,7 @@ async def overall_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
+            graph_buffer = generate_graph([(u[2], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
@@ -233,7 +237,7 @@ async def all_groups_rankings(message):
         sorted_groups.append((group_name, group["total_messages"]))
 
     if sorted_groups:
-        graph_buffer = generate_graph(sorted_groups, "📊 All Groups Leaderboard")
+        graph_buffer = generate_graph([(group, count) for group, count in sorted_groups], "📊 All Groups Leaderboard")
         text_leaderboard = "\n".join(
             [f"{group}: {count}" for group, count in sorted_groups]
         )
