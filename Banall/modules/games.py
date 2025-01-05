@@ -13,15 +13,25 @@ SCHEDULE_TIMES = [1, 18, 25, 35, 46, 60]
 # Dictionary to track user points
 user_points = {}
 
+import time
+
 # Helper function to send a random word
 async def send_random_word(chat_id):
-    try:
-        word = random.choice(WORDS)
-        await app.send_message(chat_id, f"Type this word: **{word}**")
-        return word
-    except pyrogram.errors.exceptions.bad_request_400.UsernameNotOccupied:
-        print(f"Invalid chat_id: {chat_id}")
-
+    retries = 5
+    for attempt in range(retries):
+        try:
+            word = random.choice(WORDS)
+            await app.send_message(chat_id, f"Type this word: **{word}**")
+            return word
+        except pyrogram.errors.exceptions.bad_request_400.UsernameNotOccupied:
+            print(f"Invalid chat_id: {chat_id}")
+            break
+        except pyrogram.errors.RPCError as e:
+            print(f"Error: {e}. Retrying in 10 seconds...")
+            time.sleep(10)
+    else:
+        print("Max retries reached, could not send message.")
+        
 # Function to start the word typing game
 async def start_word_game(chat_id):
     while True:
