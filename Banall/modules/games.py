@@ -70,7 +70,7 @@ async def top_points(_, message: Message):
         return
 
     sorted_users = sorted(user_points.items(), key=lambda x: x[1]["points"], reverse=True)[:10]
-    leaderboard = "\n.join(
+    leaderboard = leaderboard = "\n".join(
         [
             f"{i+1}. {await app.get_users(user_id).first_name}: {data['points']} points"
             for i, (user_id, data) in enumerate(sorted_users)
