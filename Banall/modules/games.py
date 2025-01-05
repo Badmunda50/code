@@ -35,16 +35,21 @@ async def track_word_typing(chat_id, word):
     def check(msg: Message):
         return msg.text and msg.text.lower() == word.lower() and msg.chat.id == chat_id
 
-    try:
-        msg = await app.listen(chat_id, filters.text, timeout=60)
-        if check(msg):
-            user_id = msg.from_user.id
+    @app.on_message(filters.chat(chat_id) & filters.text)
+    async def handler(client, message):
+        if check(message):
+            user_id = message.from_user.id
             user_points[user_id] = user_points.get(user_id, {"points": 0})
             user_points[user_id]["points"] += 1
-            await app.send_message(chat_id, f"🏆 {msg.from_user.mention} typed the word first and earned 1 point!")
+            await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
+            app.remove_handler(handler, message)
+
+    try:
+        await asyncio.sleep(60)  # Wait for 60 seconds to see if anyone types the word
+        await app.send_message(chat_id, "No one typed the word in time.")
     except asyncio.TimeoutError:
         await app.send_message(chat_id, "No one typed the word in time.")
-
+        
 # Command to display the top 10 users based on points
 @app.on_message(filters.command("top_points"))
 async def top_points(_, message: Message):
