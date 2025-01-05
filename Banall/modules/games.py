@@ -25,9 +25,7 @@ async def track_word_typing(chat_id, word):
         return message.text and message.text.strip().lower() == word.lower() and message.chat.id == chat_id
 
     user_scored = False
-    handler_added = False
 
-    @app.on_message(filters.chat(chat_id) & filters.text)
     async def handler(_, message: Message):
         nonlocal user_scored
         if check(_, message) and not user_scored:
@@ -36,15 +34,14 @@ async def track_word_typing(chat_id, word):
             await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
             user_scored = True
 
+    handler_ref = app.add_handler(filters.chat(chat_id) & filters.text, handler)
+
     try:
-        app.add_handler(handler)
-        handler_added = True
         await asyncio.sleep(60)  # Wait for 60 seconds for someone to type the word
         if not user_scored:
             await app.send_message(chat_id, "No one typed the word in time.")
     finally:
-        if handler_added:
-            app.remove_handler(handler)
+        app.remove_handler(handler_ref)
 
 # Function to start the word typing game
 async def start_word_game(chat_id):
