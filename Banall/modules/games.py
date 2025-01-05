@@ -55,9 +55,7 @@ async def start_game(_, message: Message):
     await message.reply_text("The word typing game has started! Get ready!")
     asyncio.create_task(start_word_game(chat_id))
 
-# Listener to track user responses
-# Listener to track user responses
-@app.on_message(filters.text & ~filters.command())
+@app.on_message(filters.text & ~filters.regex(r"^/"))
 async def check_word(_, message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
