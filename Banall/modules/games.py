@@ -4,7 +4,6 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from Banall import app
 
-
 # Define a list of random words
 WORDS = ["cat", "dog", "blue", "green", "apple", "banana", "tiger", "lion", "red", "yellow"]
 
@@ -21,11 +20,10 @@ async def send_random_word(chat_id):
     return word
 
 # Function to start the word typing game
-async def start_word_game():
+async def start_word_game(chat_id):
     while True:
         for minutes in SCHEDULE_TIMES:
             await asyncio.sleep(minutes * 60)
-            chat_id = "your_chat_id"  # Replace with your chat ID
             word = await send_random_word(chat_id)
             await track_word_typing(chat_id, word)
 
@@ -65,4 +63,4 @@ async def top_points(_, message: Message):
 async def start_game(_, message: Message):
     chat_id = message.chat.id
     await message.reply_text("The word typing game has started!")
-    asyncio.create_task(start_word_game())
+    asyncio.create_task(start_word_game(chat_id))
