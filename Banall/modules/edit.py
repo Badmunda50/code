@@ -3,6 +3,7 @@ from pyrogram.types import Message
 import asyncio
 from Banall import app
 
+
 # Track edited messages
 edited_messages = {}
 
@@ -15,7 +16,7 @@ async def track_messages(client: Client, message: Message):
     if message.text:
         edited_messages[message.id] = {"message": message, "edited": False}
 
-@app.on_message(filters.edited & filters.text)
+@app.on_edited_message(filters.text)
 async def delete_edited_message(client: Client, message: Message):
     """
     Automatically delete a user's text message 10 seconds after it is edited.
@@ -44,4 +45,4 @@ async def delete_edited_message(client: Client, message: Message):
         except Exception as e:
             print(f"Error handling message {msg_id}: {e}")
             edited_messages.pop(msg_id, None)
-        
+
