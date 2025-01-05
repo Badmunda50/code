@@ -3,7 +3,6 @@ from pyrogram.types import Message
 import asyncio
 from Banall import app
 
-
 # Track edited messages
 edited_messages = {}
 
@@ -30,7 +29,7 @@ async def delete_edited_message(client: Client, message: Message):
         # Wait for 10 seconds
         await asyncio.sleep(10)
 
-        # Check again if the message still exists and has no reactions
+        # Fetch the latest version of the message to check for reactions
         chat_id = message.chat.id
         try:
             updated_message = await client.get_messages(chat_id, msg_id)
@@ -38,11 +37,13 @@ async def delete_edited_message(client: Client, message: Message):
             # If the message has no reactions, delete it
             if not updated_message.reactions:
                 await client.delete_messages(chat_id, msg_id)
-                edited_messages.pop(msg_id, None)  # Clean up the tracking
+                print(f"Deleted message {msg_id} in chat {chat_id}")
             else:
-                # If the message has reactions, do nothing
-                edited_messages.pop(msg_id, None)
+                print(f"Message {msg_id} in chat {chat_id} has reactions, not deleting.")
         except Exception as e:
             print(f"Error handling message {msg_id}: {e}")
-            edited_messages.pop(msg_id, None)
-
+        finally:
+            # Clean up the tracking data
+            if msg_id in edited_messages:
+                edited_messages.pop(msg_id)
+                
