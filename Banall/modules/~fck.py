@@ -397,3 +397,61 @@ async def all_groups_rankings(message):
         )
     else:
         await callback_query.message.edit_text("No data available for all groups.")
+
+# Word Challenge Settings
+WORDS = ["apple", "banana", "cat", "dog", "red", "blue", "green", "lion", "tiger", "fish"]
+INTERVALS = [1,18, 25, 35, 46, 60]  # Minutes
+last_sent_word = {}  # Keeps track of the current word in each group
+
+# Function to start word challenges in all groups
+async def start_word_challenges():
+    while True:
+        for interval in INTERVALS:
+            await send_random_word()
+            time.sleep(interval * 60)
+
+# Send random word in all groups
+async def send_random_word():
+    for chat_id in last_sent_word.keys():
+        word = random.choice(WORDS)
+        last_sent_word[chat_id] = word
+        await app.send_message(chat_id, f"Word Challenge! Type this word first: **{word}**")
+
+# Handle user responses to word challenges
+@app.on_message(filters.group & ~filters.bot)
+async def handle_word_response(_, message):
+    chat_id = str(message.chat.id)
+    user_id = str(message.from_user.id)
+    user_name = message.from_user.first_name
+    word = message.text.strip()
+
+    # Check if the word matches the current challenge
+    if chat_id in last_sent_word and word == last_sent_word[chat_id]:
+        # Update points
+        user_data = points_collection.find_one({"chat_id": chat_id, "user_id": user_id}) or {
+            "chat_id": chat_id, "user_id": user_id, "user_name": user_name, "points": 0
+        }
+        user_data["points"] += 1
+        points_collection.update_one({"chat_id": chat_id, "user_id": user_id}, {"$set": user_data}, upsert=True)
+
+        # Congratulate the user
+        await message.reply_text(f"🎉 {message.from_user.mention} got the word first! Total Points: {user_data['points']}")
+        last_sent_word[chat_id] = None  # Reset the challenge
+
+# Command to show top 10 users
+@app.on_message(filters.command("top") & filters.group)
+async def show_top_users(_, message):
+    chat_id = str(message.chat.id)
+    top_users = points_collection.find({"chat_id": chat_id}).sort("points", -1).limit(10)
+    leaderboard = "\n".join([f"{i+1}. {user['user_name']} - {user['points']} Points" for i, user in enumerate(top_users)])
+
+    if leaderboard:
+        await message.reply_text(f"🏆 **Top 10 Users**:\n{leaderboard}")
+    else:
+        await message.reply_text("No points recorded yet!")
+
+# Start the word challenge automatically when the bot starts
+@app.on_startup
+async def on_startup():
+    logging.info("Starting Word Challenges...")
+    await start_word_challenges()
