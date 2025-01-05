@@ -25,6 +25,7 @@ async def track_word_typing(chat_id, word):
         return message.text and message.text.strip().lower() == word.lower() and message.chat.id == chat_id
 
     user_scored = False
+    handler_added = False
 
     @app.on_message(filters.chat(chat_id) & filters.text)
     async def handler(_, message: Message):
@@ -36,11 +37,14 @@ async def track_word_typing(chat_id, word):
             user_scored = True
 
     try:
+        app.add_handler(handler)
+        handler_added = True
         await asyncio.sleep(60)  # Wait for 60 seconds for someone to type the word
         if not user_scored:
             await app.send_message(chat_id, "No one typed the word in time.")
     finally:
-        app.remove_handler(handler)
+        if handler_added:
+            app.remove_handler(handler)
 
 # Function to start the word typing game
 async def start_word_game(chat_id):
