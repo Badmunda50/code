@@ -449,9 +449,3 @@ async def show_top_users(_, message):
         await message.reply_text(f"🏆 **Top 10 Users**:\n{leaderboard}")
     else:
         await message.reply_text("No points recorded yet!")
-
-# Start the word challenge automatically when the bot starts
-@app.on_startup
-async def on_startup():
-    logging.info("Starting Word Challenges...")
-    await start_word_challenges()
