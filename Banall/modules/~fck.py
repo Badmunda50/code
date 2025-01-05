@@ -398,24 +398,35 @@ async def all_groups_rankings(message):
     else:
         await callback_query.message.edit_text("No data available for all groups.")
 
+import random
+import asyncio
+from pyrogram import Client, filters
+
 # Word Challenge Settings
 WORDS = ["apple", "banana", "cat", "dog", "red", "blue", "green", "lion", "tiger", "fish"]
-INTERVALS = [1,18, 25, 35, 46, 60]  # Minutes
+INTERVALS = [1, 18, 25, 35, 46, 60]  # Minutes
 last_sent_word = {}  # Keeps track of the current word in each group
 
+# MongoDB points collection (replace with your database connection)
+# Example: points_collection = db["points"]
+points_collection = None  # Replace this with your actual database collection instance
+
 # Function to start word challenges in all groups
-async def start_word_challenges():
+async def start_word_challenges(app):
     while True:
         for interval in INTERVALS:
-            await send_random_word()
-            time.sleep(interval * 60)
+            await send_random_word(app)
+            await asyncio.sleep(interval * 60)
 
 # Send random word in all groups
-async def send_random_word():
+async def send_random_word(app):
     for chat_id in last_sent_word.keys():
         word = random.choice(WORDS)
         last_sent_word[chat_id] = word
-        await app.send_message(chat_id, f"Word Challenge! Type this word first: **{word}**")
+        try:
+            await app.send_message(chat_id, f"Word Challenge! Type this word first: **{word}**")
+        except Exception as e:
+            print(f"Failed to send message to {chat_id}: {e}")
 
 # Handle user responses to word challenges
 @app.on_message(filters.group & ~filters.bot)
