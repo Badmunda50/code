@@ -29,7 +29,7 @@ async def start_word_game(chat_id):
             await send_random_word(chat_id)
 
 # Command to display the top 10 users based on points
-@app.on_message(filters.command("top_points"))
+@app.on_message(filters.command("top"))
 async def top_points(_, message: Message):
     if not user_points:
         await message.reply_text("No points have been awarded yet.")
@@ -38,7 +38,7 @@ async def top_points(_, message: Message):
     sorted_users = sorted(user_points.items(), key=lambda x: x[1], reverse=True)[:10]
     leaderboard = "\n".join(
         [
-            f"{i+1}. {await app.get_users(user_id).first_name}: {points} points"
+            f"{i+1}. {(await app.get_users(user_id)).first_name}: {points} points"
             for i, (user_id, points) in enumerate(sorted_users)
         ]
     )
