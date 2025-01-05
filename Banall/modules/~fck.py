@@ -21,7 +21,7 @@ today_collection = db["today_ranking"]
 weekly_collection = db["weekly_ranking"]
 group_collection = db["group_ranking"]
 
-photo_path = "path/to/photo.jpg"  # Replace with the path to your photo
+photo_path = "Banall/pic.jpg"  # Replace with the path to your photo
 
 # Helper Functions
 def get_current_week():
