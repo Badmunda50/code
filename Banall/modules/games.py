@@ -31,7 +31,7 @@ async def send_random_word(chat_id):
             time.sleep(10)
     else:
         print("Max retries reached, could not send message.")
-        
+
 # Function to start the word typing game
 async def start_word_game(chat_id):
     while True:
@@ -52,14 +52,16 @@ async def track_word_typing(chat_id, word):
             user_points[user_id] = user_points.get(user_id, {"points": 0})
             user_points[user_id]["points"] += 1
             await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
-            app.remove_handler(handler, message)
+            app.remove_handler(handler)
 
     try:
         await asyncio.sleep(60)  # Wait for 60 seconds to see if anyone types the word
-        await app.send_message(chat_id, "No one typed the word in time.")
     except asyncio.TimeoutError:
+        pass
+    finally:
         await app.send_message(chat_id, "No one typed the word in time.")
-        
+        app.remove_handler(handler)
+
 # Command to display the top 10 users based on points
 @app.on_message(filters.command("top_points"))
 async def top_points(_, message: Message):
@@ -68,7 +70,7 @@ async def top_points(_, message: Message):
         return
 
     sorted_users = sorted(user_points.items(), key=lambda x: x[1]["points"], reverse=True)[:10]
-    leaderboard = "\n".join(
+    leaderboard = "\n.join(
         [
             f"{i+1}. {await app.get_users(user_id).first_name}: {data['points']} points"
             for i, (user_id, data) in enumerate(sorted_users)
