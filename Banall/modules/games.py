@@ -15,9 +15,12 @@ user_points = {}
 
 # Helper function to send a random word
 async def send_random_word(chat_id):
-    word = random.choice(WORDS)
-    await app.send_message(chat_id, f"Type this word: **{word}**")
-    return word
+    try:
+        word = random.choice(WORDS)
+        await app.send_message(chat_id, f"Type this word: **{word}**")
+        return word
+    except pyrogram.errors.exceptions.bad_request_400.UsernameNotOccupied:
+        print(f"Invalid chat_id: {chat_id}")
 
 # Function to start the word typing game
 async def start_word_game(chat_id):
