@@ -152,9 +152,9 @@ async def today_rankings(_, message):
                 ]]
             )
             await message.reply_photo(
-                photo=graph_buffer, 
-                caption=f"**📈 LEADERBOARD TODAY**\n\n{text_leaderboard}",
-                reply_markup=buttons
+    photo=photo_path, 
+    caption=f"**📈 LEADERBOARD TODAY**\n\n{text_leaderboard}",
+    reply_markup=buttons
             )
         else:
             await message.reply_text("No data available for today.")
