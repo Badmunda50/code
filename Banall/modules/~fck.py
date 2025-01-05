@@ -218,15 +218,14 @@ async def on_weekly_callback(_, callback_query):
                 ]]
             )
             await callback_query.message.edit_media(
-                media=InputMediaPhoto(graph_buffer),
-                reply_markup=buttons,
-                caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}"
+                media=InputMediaPhoto(graph_buffer, caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}"),
+                reply_markup=buttons
             )
         else:
             await callback_query.message.edit_text("No data available for this week.")
     else:
         await callback_query.message.edit_text("No data available for this week.")
-
+        
 @app.on_callback_query(filters.regex(r"^overall$"))
 async def on_overall_callback(_, callback_query):
     chat_id = str(callback_query.message.chat.id)
