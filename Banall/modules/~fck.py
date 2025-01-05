@@ -8,6 +8,7 @@ from pyrogram import enums
 import io
 import logging
 import time
+import os
 
 # Set up logging for error tracking
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,12 @@ weekly_collection = db["weekly_ranking"]
 group_collection = db["group_ranking"]
 
 photo_path = "Banall/pic.jpg"  # Replace with the path to your photo
+
+# Verify if the photo exists
+if not os.path.isfile(photo_path):
+    logging.error(f"Photo path does not exist: {photo_path}")
+
+# Then use the photo_path in your code
 
 # Helper Functions
 def get_current_week():
