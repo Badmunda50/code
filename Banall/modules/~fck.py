@@ -21,6 +21,8 @@ today_collection = db["today_ranking"]
 weekly_collection = db["weekly_ranking"]
 group_collection = db["group_ranking"]
 
+photo_path = "path/to/photo.jpg"  # Replace with the path to your photo
+
 # Helper Functions
 def get_current_week():
     """Returns the current week number."""
@@ -31,6 +33,7 @@ def update_group_total(chat_id):
     group_data = group_collection.find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "total_messages": 0}
     group_data["total_messages"] += 1
     group_collection.update_one({"chat_id": chat_id}, {"$set": group_data}, upsert=True)
+
 
 def generate_graph(data, title):
     """Generates a graph based on the given data."""
