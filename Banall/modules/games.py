@@ -66,4 +66,7 @@ async def top_points(_, message: Message):
 async def start_game(_, message: Message):
     chat_id = message.chat.id
     await message.reply_text("The word typing game has started!")
+    # Send a random word immediately
+    word = await send_random_word(chat_id)
+    await track_word_typing(chat_id, word)
     asyncio.create_task(start_word_game(chat_id))
