@@ -1,12 +1,14 @@
 import random
 import asyncio
 from Banall import app
+from pyrogram import Client, filters
+from pyrogram.types import Message
 
 # Define a list of random words
 WORDS = ["cat", "dog", "blue", "green", "apple", "banana", "tiger", "lion", "red", "yellow"]
 
 # Schedule times (in minutes) for sending words
-SCHEDULE_TIMES = [18, 25, 35, 46, 60]
+SCHEDULE_TIMES = [1, 18, 25, 35, 46, 60]
 
 # Dictionary to track user points
 user_points = {}
