@@ -49,7 +49,6 @@ def generate_graph(data, title):
     return buffer
 
 async def fetch_usernames(app, users_data):
-    """Fetches usernames from user IDs."""
     result = []
     for user_id, count in users_data:
         try:
