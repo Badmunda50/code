@@ -187,13 +187,17 @@ async def on_today_callback(_, callback_query):
             )
             await callback_query.message.edit_media(
                 media=InputMediaPhoto(graph_buffer),
-                reply_markup=buttons,
+                reply_markup=buttons
+            )
+            await callback_query.message.edit_caption(
                 caption=f"**📈 LEADERBOARD TODAY**\n\n{text_leaderboard}"
             )
         else:
             await callback_query.message.edit_text("No data available for today.")
     else:
         await callback_query.message.edit_text("No data available for today.")
+
+# Repeat the similar changes for other callback query handlers
 
 @app.on_callback_query(filters.regex(r"^weekly$"))
 async def on_weekly_callback(_, callback_query):
