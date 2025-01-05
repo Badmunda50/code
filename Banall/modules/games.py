@@ -53,6 +53,3 @@ async def top_points(_, message):
     leaderboard = "\n".join([f"{i+1}. {await app.get_users(user_id).first_name}: {data['points']} points" for i, (user_id, data) in enumerate(sorted_users)])
     await message.reply_text(f"**🏆 TOP 10 USERS BY POINTS 🏆**\n\n{leaderboard}")
 
-# Start the word game when the bot starts
-app.add_handler(MessageHandler(start_word_game, filters=filters.start))
-
