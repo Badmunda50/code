@@ -49,10 +49,14 @@ async def track_word_typing(chat_id, word):
     async def handler(client, message):
         if check(message):
             user_id = message.from_user.id
-            user_points[user_id] = user_points.get(user_id, {"points": 0})
-            user_points[user_id]["points"] += 1
-            await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
+            if not hasattr(handler, "point_awarded") or not handler.point_awarded:
+                user_points[user_id] = user_points.get(user_id, {"points": 0})
+                user_points[user_id]["points"] += 1
+                await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
+                handler.point_awarded = True
             app.remove_handler(handler)
+
+    handler.point_awarded = False
 
     try:
         await asyncio.sleep(60)  # Wait for 60 seconds to see if anyone types the word
@@ -70,7 +74,7 @@ async def top_points(_, message: Message):
         return
 
     sorted_users = sorted(user_points.items(), key=lambda x: x[1]["points"], reverse=True)[:10]
-    leaderboard = leaderboard = "\n".join(
+    leaderboard = "\n".join(
         [
             f"{i+1}. {await app.get_users(user_id).first_name}: {data['points']} points"
             for i, (user_id, data) in enumerate(sorted_users)
