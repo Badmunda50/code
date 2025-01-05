@@ -1,32 +1,47 @@
-from Banall import app as shizuchat
-from pyrogram import filters
+from pyrogram import Client, filters
 from pyrogram.types import Message
 import asyncio
+from Banall import app
 
-@shizuchat.on_edited_message(filters.group & ~filters.me)
-async def delete_edited_message(client, message: Message):
+# Track edited messages
+edited_messages = {}
+
+@app.on_message(filters.text)
+async def track_messages(client: Client, message: Message):
     """
-    Deletes a message in a group if the user edits the text.
-    Ignores edits like reactions, media changes, etc.
+    Track new messages sent by users.
     """
-    # Check if the edit is a text edit
-    if not message.text or (message.edit_date and not message.text):
-        return
+    # Log the original message to track edits later
+    if message.text:
+        edited_messages[message.id] = {"message": message, "edited": False}
 
-    try:
-        # Wait for a short duration (e.g., 2 seconds)
-        await asyncio.sleep(2)
+@app.on_message(filters.edited & filters.text)
+async def delete_edited_message(client: Client, message: Message):
+    """
+    Automatically delete a user's text message 10 seconds after it is edited.
+    """
+    msg_id = message.id
 
-        # Delete the edited message
-        await message.delete()
+    # Check if the message exists in the tracked messages and mark as edited
+    if msg_id in edited_messages:
+        edited_messages[msg_id]["edited"] = True
 
-        # Inform the user in the chat (not as a reply to the deleted message)
-        await client.send_message(
-            chat_id=message.chat.id,
-            text=(
-                f"ʜᴇʏ, {message.from_user.mention}\n"
-                f"ʏᴏᴜʀ ᴇᴅɪᴛᴇᴅ ᴍᴇssᴀɢᴇ ʜᴀs ʙᴇᴇɴ ᴅᴇʟᴇᴛᴇᴅ."
-            ),
-        )
-    except Exception as e:
-        print(f"Error deleting edited message: {e}")
+        # Wait for 10 seconds
+        await asyncio.sleep(10)
+
+        # Check again if the message still exists and has no reactions
+        chat_id = message.chat.id
+        try:
+            updated_message = await client.get_messages(chat_id, msg_id)
+
+            # If the message has no reactions, delete it
+            if not updated_message.reactions:
+                await client.delete_messages(chat_id, msg_id)
+                edited_messages.pop(msg_id, None)  # Clean up the tracking
+            else:
+                # If the message has reactions, do nothing
+                edited_messages.pop(msg_id, None)
+        except Exception as e:
+            print(f"Error handling message {msg_id}: {e}")
+            edited_messages.pop(msg_id, None)
+        
