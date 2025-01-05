@@ -53,16 +53,13 @@ async def fetch_usernames(app, users_data):
     for user_id, count in users_data:
         try:
             user = await app.get_users(int(user_id))
-            if user:
-                user_name = user.first_name if user.first_name else "Unknown"
-                result.append((user_name, count, user_id))
-            else:
-                result.append(("Unknown", count, user_id))
+            user_name = user.first_name if user.first_name else "Unknown"
+            result.append((user_name, count, user_id))
         except Exception as e:
             logging.error(f"Error fetching username for {user_id}: {e}")
             result.append(("Unknown", count, user_id))
     return result
-
+    
 # ------------------- Watcher -----------------------
 user_message_counts = {}
 user_block_times = {}
@@ -294,9 +291,8 @@ async def on_group_overall_callback(_, callback_query):
             ]]
         )
         await callback_query.message.edit_media(
-            media=InputMediaPhoto(graph_buffer),
-            reply_markup=buttons,
-            caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"
+            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"),
+            reply_markup=buttons
         )
     else:
         await callback_query.message.edit_text("No data available for all groups.")
