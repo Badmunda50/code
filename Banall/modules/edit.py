@@ -1,32 +1,32 @@
+import logging
+import os
+import platform
+import psutil
+import time
+from Banall import app
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import asyncio
-from Banall import app
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-@app.on_edited_message(filters.text)
-async def delete_edited_message(client: Client, message: Message):
-    """
-    Automatically delete a user's text message 10 seconds after it is edited,
-    but only if it has no reactions.
-    """
-    msg_id = message.id
-    chat_id = message.chat.id
+# Define the maximum allowed length for a message
+MAX_MESSAGE_LENGTH = 25
 
-    # Wait for 10 seconds
-    await asyncio.sleep(10)
+async def delete_long_edited_messages(client: Client, edited_message: Message):
+    if edited_message.text:
+        # Check if the edited message exceeds the word limit
+        if len(edited_message.text.split()) > MAX_MESSAGE_LENGTH:
+            await edited_message.delete()
 
-    try:
-        # Fetch the latest version of the message
-        updated_message = await client.get_messages(chat_id, msg_id)
+@app.on_edited_message(filters.group & ~filters.me)
+async def handle_edited_messages(client: Client, edited_message: Message):
+    await delete_long_edited_messages(client, edited_message)
 
-        # Check if the message has reactions
-        if updated_message.reactions:
-            print(f"Message {msg_id} in chat {chat_id} has reactions, not deleting.")
-            return
+async def delete_long_messages(client: Client, message: Message):
+    if message.text:
+        # Check if the message exceeds the word limit
+        if len(message.text.split()) > MAX_MESSAGE_LENGTH:
+            await message.delete()
 
-        # If no reactions, delete the message
-        await client.delete_messages(chat_id, msg_id)
-        print(f"Deleted message {msg_id} in chat {chat_id}")
-    except Exception as e:
-        print(f"Error handling message {msg_id}: {e}")
-
+@app.on_message(filters.group & ~filters.me)
+async def handle_messages(client: Client, message: Message):
+    await delete_long_messages(client, message)
