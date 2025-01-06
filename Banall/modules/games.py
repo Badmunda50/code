@@ -2,8 +2,13 @@ import random
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pymongo import MongoClient
 from Banall import app
 
+# MongoDB setup
+mongo_client = MongoClient("mongodb://localhost:27017/")
+db = mongo_client["word_game"]
+user_points_collection = db["user_points"]
 
 # Define a list of random words
 WORDS = ["cat", "dog", "blue", "green", "apple", "banana", "tiger", "lion", "red", "yellow"]
@@ -11,9 +16,19 @@ WORDS = ["cat", "dog", "blue", "green", "apple", "banana", "tiger", "lion", "red
 # Schedule times (in minutes) for sending words
 SCHEDULE_TIMES = [1, 18, 25, 35, 46, 60]
 
-# Dictionary to track user points
-user_points = {}
+# Dictionary to track active words for chats
 active_words = {}
+
+# Helper function to get user points from MongoDB
+def get_user_points(user_id):
+    user = user_points_collection.find_one({"user_id": user_id})
+    return user["points"] if user else 0
+
+# Helper function to update user points in MongoDB
+def update_user_points(user_id, points):
+    user_points_collection.update_one(
+        {"user_id": user_id}, {"$set": {"points": points}}, upsert=True
+    )
 
 # Helper function to send a random word
 async def send_random_word(chat_id):
@@ -31,29 +46,38 @@ async def start_word_game(chat_id):
 # Command to display the top 10 users based on points
 @app.on_message(filters.command("top"))
 async def top_points(_, message: Message):
-    if not user_points:
+    leaderboard_data = list(user_points_collection.find().sort("points", -1).limit(10))
+    if not leaderboard_data:
         await message.reply_text("No points have been awarded yet.")
         return
 
-    sorted_users = sorted(user_points.items(), key=lambda x: x[1], reverse=True)[:10]
     leaderboard = "\n".join(
         [
-            f"{i+1}. {(await app.get_users(user_id)).first_name}: {points} points"
-            for i, (user_id, points) in enumerate(sorted_users)
+            f"{i+1}. [{user['name']}](tg://user?id={user['user_id']}): {user['points']} points"
+            for i, user in enumerate(leaderboard_data)
         ]
     )
-    await message.reply_text(f"**🏆 TOP 10 USERS BY POINTS 🏆**\n\n{leaderboard}")
+    await message.reply_text(f"**🏆 TOP 10 USERS BY POINTS 🏆**\n\n{leaderboard}", disable_web_page_preview=True)
 
-# Command to start the game
-@app.on_message(filters.command("start"))
-async def start_game(_, message: Message):
-    chat_id = message.chat.id
-    if chat_id in active_words:
-        await message.reply_text("The game is already running in this chat!")
-        return
+# Start the game automatically when the bot is added as an admin
+@app.on_chat_member_updated()
+async def on_chat_member_updated(_, event):
+    if event.new_chat_member.is_admin and not event.old_chat_member.is_admin:
+        chat_id = event.chat.id
+        if chat_id in active_words:
+            return
+        asyncio.create_task(start_word_game(chat_id))
+        await app.send_message(chat_id, "I'm now an admin! The word typing game has started!")
 
-    await message.reply_text("The word typing game has started! Get ready!")
-    asyncio.create_task(start_word_game(chat_id))
+# Start the game in chats where the bot is already an admin
+@app.on_startup()
+async def on_startup(app):
+    async for dialog in app.get_dialogs():
+        if dialog.chat.type in ["group", "supergroup"]:
+            member = await app.get_chat_member(dialog.chat.id, "me")
+            if member.is_admin and dialog.chat.id not in active_words:
+                asyncio.create_task(start_word_game(dialog.chat.id))
+                await app.send_message(dialog.chat.id, "The word typing game has started!")
 
 @app.on_message(filters.text & ~filters.regex(r"^/"))
 async def check_word(_, message: Message):
@@ -63,5 +87,11 @@ async def check_word(_, message: Message):
 
     if word and message.text.strip().lower() == word.lower():
         active_words.pop(chat_id, None)  # Remove the active word
-        user_points[user_id] = user_points.get(user_id, 0) + 1
-        await app.send_message(chat_id, f"🏆 {message.from_user.mention} typed the word first and earned 1 point!")
+        user_points = get_user_points(user_id) + 1
+        update_user_points(user_id, user_points)
+
+        await app.send_message(
+            chat_id,
+            f"🏆 [{message.from_user.first_name}](tg://user?id={user_id}) typed the word first and earned 1 point!",
+            disable_web_page_preview=True,
+        )
