@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from Banall import app
 
 # MongoDB setup
-mongo_client = MongoClient("mongodb://localhost:27017/")
+mongo_client = MongoClient("mongodb+srv://BADMUNDA:BADMYDAD@badhacker.i5nw9na.mongodb.net/")
 db = mongo_client["word_game"]
 user_points_collection = db["user_points"]
 
@@ -68,16 +68,6 @@ async def on_chat_member_updated(_, event):
             return
         asyncio.create_task(start_word_game(chat_id))
         await app.send_message(chat_id, "I'm now an admin! The word typing game has started!")
-
-# Start the game in chats where the bot is already an admin
-@app.on_startup()
-async def on_startup(app):
-    async for dialog in app.get_dialogs():
-        if dialog.chat.type in ["group", "supergroup"]:
-            member = await app.get_chat_member(dialog.chat.id, "me")
-            if member.is_admin and dialog.chat.id not in active_words:
-                asyncio.create_task(start_word_game(dialog.chat.id))
-                await app.send_message(dialog.chat.id, "The word typing game has started!")
 
 @app.on_message(filters.text & ~filters.regex(r"^/"))
 async def check_word(_, message: Message):
