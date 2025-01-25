@@ -40,16 +40,21 @@ def generate_graph(data, title):
     users = [d[0] for d in data]
     messages = [d[1] for d in data]
     plt.figure(figsize=(10, 6))
-    plt.barh(users, messages, color="skyblue")
-    plt.xlabel("Messages")
-    plt.ylabel("Users")
-    plt.title(title)
+    plt.barh(users, messages, color="pink")
+    plt.xlabel("Messages", color="white")
+    plt.ylabel("Users", color="white")
+    plt.title(title, color="white")
     plt.gca().invert_yaxis()
+    plt.gca().set_facecolor("black")
+    plt.gcf().set_facecolor("black")
+    plt.xticks(color="white")
+    plt.yticks(color="white")
     buffer = io.BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)
     plt.close()
     return buffer
+    
 
 async def fetch_usernames(app, users_data):
     result = []
