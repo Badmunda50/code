@@ -13,7 +13,7 @@ import time
 logging.basicConfig(level=logging.INFO)
 
 # MongoDB setup
-MONGO_URI = "mongodb+srv://knight_rider:GODGURU12345@knight.jm59gu9.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI = "mongodb+srv://BADMUNDA:BADMYDAD@badhacker.i5nw9na.mongodb.net/"
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["rankings_database"]
 overall_collection = db["overall_ranking"]
@@ -21,7 +21,6 @@ today_collection = db["today_ranking"]
 weekly_collection = db["weekly_ranking"]
 group_collection = db["group_ranking"]
 
-photo_path = "path/to/photo.jpg"  # Replace with the path to your photo
 
 # Helper Functions
 def get_current_week():
@@ -37,10 +36,10 @@ def update_group_total(chat_id):
 
 def generate_graph(data, title):
     """Generates a graph based on the given data."""
-    users = [d[0] for d in data]
-    messages = [d[1] for d in data]
+    usernames = [d[0] for d in data]
+    messages = [d[2] for d in data]
     plt.figure(figsize=(10, 6))
-    plt.barh(users, messages, color="pink")
+    plt.barh(usernames, messages, color="#FF1493")
     plt.xlabel("Messages", color="white")
     plt.ylabel("Users", color="white")
     plt.title(title, color="white")
@@ -54,18 +53,18 @@ def generate_graph(data, title):
     buffer.seek(0)
     plt.close()
     return buffer
-    
 
 async def fetch_usernames(app, users_data):
     result = []
     for user_id, count in users_data:
         try:
             user = await app.get_users(int(user_id))
-            user_name = user.first_name if user.first_name else "Unknown"
-            result.append((user_name, count, user_id))
+            user_name = user.username if user.username else "Unknown"
+            first_name = user.first_name if user.first_name else "Unknown"
+            result.append((user_name, first_name, count, user_id))
         except Exception as e:
             logging.error(f"Error fetching username for {user_id}: {e}")
-            result.append(("Unknown", count, user_id))
+            result.append(("Unknown", "Unknown", count, user_id))
     return result
     
 # ------------------- Watcher -----------------------
@@ -96,13 +95,13 @@ async def group_watcher(_, message):
 
     # Block user if they sent more than 8 messages in 3 seconds
     if len(user_message_counts[user_id]) > 8:
-        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
+        await message.reply_text(f"⛔️ {message.from_user.mention}ɪꜱ ꜰʟᴏᴏᴅɪɴɢ: ʙʟᴏᴄᴋᴇᴅ ꜰᴏʀ 20 ᴍɪɴᴜᴛᴇꜱ ꜰᴏʀ ᴜꜱɪɴɢ ᴛʜᴇ ʙᴏᴛ.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
 
     # Block user if they sent more than 3 messages in 8 seconds
     if len([t for t in user_message_counts[user_id] if current_time - t <= 8]) > 3:
-        await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes for using the bot.")
+        await message.reply_text(f"⛔️ {message.from_user.mention}ɪꜱ ꜰʟᴏᴏᴅɪɴɢ: ʙʟᴏᴄᴋᴇᴅ ꜰᴏʀ 20 ᴍɪɴᴜᴛᴇꜱ ꜰᴏʀ ᴜꜱɪɴɢ ᴛʜᴇ ʙᴏᴛ.")
         user_block_times[user_id] = current_time + 20 * 60  # Block for 20 minutes
         return
 
@@ -132,7 +131,10 @@ async def group_watcher(_, message):
     update_group_total(chat_id)
 
 # ------------------- Rankings ----------------------
-@app.on_message(filters.command("rankings"))
+
+@app.on_message(
+    filters.command(["rankings", "today"], prefixes=["/", "!", "%", ",", "", ".", "@", "#"])
+)
 async def today_rankings(_, message):
     chat_id = str(message.chat.id)
     today_data = today_collection.find_one({"chat_id": chat_id})
@@ -143,28 +145,34 @@ async def today_rankings(_, message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Today's Leaderboard")
+            graph_buffer = generate_graph(usernames_data, "📊 Today's Leaderboard")
             text_leaderboard = "\n".join(
-                [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
+                [f"[{first_name}](tg://user?id={user_id}): {count}" for username, first_name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
-                caption=f"**📈 LEADERBOARD TODAY**\n\n{text_leaderboard}",
+                caption=f"**📈 ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ᴛᴏᴅᴀʏ**\n\n{text_leaderboard}",
                 reply_markup=buttons
             )
         else:
-            await message.reply_text("No data available for today.")
+            await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛᴏᴅᴀʏ.")
     else:
-        await message.reply_text("No data available for today.")
+        await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛᴏᴅᴀʏ.")
+
+    # Delete the command message
+    await message.delete()
 
 @app.on_callback_query(filters.regex(r"^today$"))
 async def on_today_callback(_, callback_query):
@@ -183,19 +191,22 @@ async def on_today_callback(_, callback_query):
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
             )
         await callback_query.message.edit_media(
-            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 LEADERBOARD TODAY**\n\n{text_leaderboard}"),
+            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ᴛᴏᴅᴀʏ**\n\n{text_leaderboard}"),
             reply_markup=buttons
         )
     else:
-        await callback_query.message.edit_text("No data available for all groups.")
+        await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴀʟʟ ɢʀᴏᴜᴘꜱ.")
            
            
 @app.on_callback_query(filters.regex(r"^weekly$"))
@@ -210,27 +221,30 @@ async def on_weekly_callback(_, callback_query):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 ᴡᴇᴇᴋʟʏ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
             )
             await callback_query.message.edit_media(
-                media=InputMediaPhoto(graph_buffer, caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}"),
+                media=InputMediaPhoto(graph_buffer, caption=f"**📈 ᴡᴇᴇᴋʟʏ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ**\n\n{text_leaderboard}"),
                 reply_markup=buttons
             )
         else:
-            await callback_query.message.edit_text("No data available for this week.")
+            await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ᴡᴇᴇᴋ.")
     else:
-        await callback_query.message.edit_text("No data available for this week.")
+        await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ᴡᴇᴇᴋ.")
         
 @app.on_callback_query(filters.regex(r"^overall$"))
 async def on_overall_callback(_, callback_query):
@@ -243,25 +257,28 @@ async def on_overall_callback(_, callback_query):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 ᴏᴠᴇʀᴀʟʟ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
         )
         await callback_query.message.edit_media(
-            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"),
+            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 ᴛᴏᴘ ɢʀᴏᴜᴘꜱ ᴏᴠᴇʀᴀʟʟ**\n\n{text_leaderboard}"),
             reply_markup=buttons
         )
     else:
-        await callback_query.message.edit_text("No data available for all groups.")
+        await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴀʟʟ ɢʀᴏᴜᴘꜱ.")
         
 @app.on_callback_query(filters.regex(r"^group_overall$"))
 async def on_group_overall_callback(_, callback_query):
@@ -279,25 +296,28 @@ async def on_group_overall_callback(_, callback_query):
         sorted_groups.append((group_name, group["total_messages"]))
 
     if sorted_groups:
-        graph_buffer = generate_graph(sorted_groups, "📊 All Groups Leaderboard")
+        graph_buffer = generate_graph(sorted_groups, "📊 ᴀʟʟ ɢʀᴏᴜᴘꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
         text_leaderboard = "\n".join(
             [f"{group}: {count}" for group, count in sorted_groups]
         )
         buttons = InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton("Today", callback_data="today"),
-                InlineKeyboardButton("Weekly", callback_data="weekly"),
-                InlineKeyboardButton("Overall", callback_data="overall"),
-                InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                InlineKeyboardButton("Back", callback_data="back")
+                InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+            ],
+            [
+                InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+            ],
+            [
+                InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
             ]]
         )
         await callback_query.message.edit_media(
-            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"),
+            media=InputMediaPhoto(media=graph_buffer, caption=f"**📈 ᴛᴏᴘ ɢʀᴏᴜᴘꜱ ᴏᴠᴇʀᴀʟʟ**\n\n{text_leaderboard}"),
             reply_markup=buttons
         )
     else:
-        await callback_query.message.edit_text("No data available for all groups.")
+        await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴀʟʟ ɢʀᴏᴜᴘꜱ.")
 
 @app.on_callback_query(filters.regex(r"^back$"))
 async def on_back_callback(_, callback_query):
@@ -315,28 +335,31 @@ async def weekly_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Weekly Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 ᴡᴇᴇᴋʟʏ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
-                caption=f"**📈 WEEKLY LEADERBOARD**\n\n{text_leaderboard}",
+                caption=f"**📈 ᴡᴇᴇᴋʟʏ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ**\n\n{text_leaderboard}",
                 reply_markup=buttons
             )
         else:
-            await message.reply_text("No data available for this week.")
+            await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ᴡᴇᴇᴋ.")
     else:
-        await message.reply_text("No data available for this week.")
+        await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ᴡᴇᴇᴋ.")
 
 async def overall_rankings(message):
     chat_id = str(message.chat.id)
@@ -348,28 +371,31 @@ async def overall_rankings(message):
 
         if sorted_users_data:
             usernames_data = await fetch_usernames(app, sorted_users_data)
-            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 Overall Leaderboard")
+            graph_buffer = generate_graph([(u[0], u[1]) for u in usernames_data], "📊 ᴏᴠᴇʀᴀʟʟ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
             text_leaderboard = "\n".join(
                 [f"[{name}](tg://user?id={user_id}): {count}" for name, count, user_id in usernames_data]
             )
             buttons = InlineKeyboardMarkup(
                 [[
-                    InlineKeyboardButton("Today", callback_data="today"),
-                    InlineKeyboardButton("Weekly", callback_data="weekly"),
-                    InlineKeyboardButton("Overall", callback_data="overall"),
-                    InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                    InlineKeyboardButton("Back", callback_data="back")
+                    InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+                ],
+                [
+                    InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                    InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+                ],
+                [
+                    InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
                 ]]
             )
             await message.reply_photo(
                 photo=graph_buffer, 
-                caption=f"**📈 OVERALL LEADERBOARD**\n\n{text_leaderboard}",
+                caption=f"**📈 ᴏᴠᴇʀᴀʟʟ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ**\n\n{text_leaderboard}",
                 reply_markup=buttons
             )
         else:
-            await message.reply_text("No data available for this group.")
+            await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ɢʀᴏᴜᴘ.")
     else:
-        await message.reply_text("No data available for this group.")
+        await message.reply_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪꜱ ɢʀᴏᴜᴘ.")
 
 async def all_groups_rankings(message):
     groups_data = group_collection.find().sort("total_messages", -1).limit(5)
@@ -386,22 +412,25 @@ async def all_groups_rankings(message):
         sorted_groups.append((group_name, group["total_messages"]))
 
     if sorted_groups:
-        graph_buffer = generate_graph(sorted_groups, "📊 All Groups Leaderboard")
+        graph_buffer = generate_graph(sorted_groups, "📊 ᴀʟʟ ɢʀᴏᴜᴘꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ")
         text_leaderboard = "\n".join(
             [f"{group}: {count}" for group, count in sorted_groups]
         )
         buttons = InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton("Today", callback_data="today"),
-                InlineKeyboardButton("Weekly", callback_data="weekly"),
-                InlineKeyboardButton("Overall", callback_data="overall"),
-                InlineKeyboardButton("Group Overall", callback_data="group_overall"),
-                InlineKeyboardButton("Back", callback_data="back")
+                InlineKeyboardButton("ᴛᴏᴅᴀʏ", callback_data="today"),
+            ],
+            [
+                InlineKeyboardButton("ᴡᴇᴇᴋʟʏ", callback_data="weekly"),
+                InlineKeyboardButton("ᴏᴠᴇʀᴀʟʟ", callback_data="overall"),
+            ],
+            [
+                InlineKeyboardButton("ɢʀᴏᴜᴘ ᴏᴠᴇʀᴀʟʟ", callback_data="group_overall")
             ]]
         )
         await message.reply_photo(
             photo=graph_buffer, 
-            caption=f"**📈 TOP GROUPS OVERALL**\n\n{text_leaderboard}"
+            caption=f"**📈 ᴛᴏᴘ ɢʀᴏᴜᴘꜱ ᴏᴠᴇʀᴀʟʟ**\n\n{text_leaderboard}"
         )
     else:
-        await callback_query.message.edit_text("No data available for all groups.")
+        await callback_query.message.edit_text("ɴᴏ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴀʟʟ ɢʀᴏᴜᴘꜱ.")
